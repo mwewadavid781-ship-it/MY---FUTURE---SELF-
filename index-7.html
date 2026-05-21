@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>EVA · Sentient Prime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --a:#FFBF00;--g:#FFD700;--r:#FF2244;--pk:#FF6EB4;
+  --bg:#000;--bg2:#080400;--panel:#0a0500;
+  --border:rgba(255,191,0,0.2);--borderl:rgba(255,191,0,0.4);
+  --text:#F0E6C8;--sub:#8a7050;--dim:#3a2800;
+  --green:#39FF14;--font:'Share Tech Mono',monospace;
+  --display:'Orbitron',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);overflow:hidden}
+body{font-family:var(--font);color:var(--text);display:flex;flex-direction:column}
+
+/* ── TOPBAR ── */
+#topbar{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:rgba(0,0,0,0.95);border-bottom:1px solid var(--border);
+  flex-shrink:0;position:relative;z-index:100;
+}
+#eva-status-dot{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 38% 32%,#FFE566,#FFBF00 55%,#7a3300);
+  box-shadow:0 0 14px #FFBF00aa,0 0 28px #FF8C0055;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:9px;font-weight:900;
+  color:#000;letter-spacing:1px;cursor:pointer;
+}
+#topbar-info{flex:1}
+#eva-name{font-family:var(--display);font-size:13px;font-weight:900;color:var(--a);letter-spacing:3px}
+#eva-mood-line{font-size:10px;color:var(--sub);margin-top:2px;letter-spacing:0.5px}
+#topbar-actions{display:flex;gap:6px}
+.tb-btn{background:rgba(255,191,0,0.08);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--a);font-size:13px;cursor:pointer;transition:all .2s}
+.tb-btn:hover{border-color:var(--a);box-shadow:0 0 8px rgba(255,191,0,0.3)}
+
+/* ── STATS BAR ── */
+#statsbar{
+  display:flex;gap:4px;padding:5px 10px;
+  background:rgba(0,0,0,0.9);border-bottom:1px solid var(--border);
+  flex-shrink:0;overflow-x:auto;
+}
+#statsbar::-webkit-scrollbar{display:none}
+.stat{background:rgba(255,191,0,0.06);border:1px solid var(--border);border-radius:7px;padding:4px 10px;text-align:center;flex-shrink:0;min-width:50px}
+.stat-n{font-size:16px;font-weight:bold;color:var(--g);font-family:var(--display)}
+.stat-l{font-size:8px;color:var(--sub);letter-spacing:1px;margin-top:1px}
+
+/* ── NAV TABS ── */
+#navtabs{
+  display:flex;background:rgba(0,0,0,0.9);
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.ntab{flex:1;padding:9px 2px;text-align:center;font-size:9px;letter-spacing:0.5px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase}
+.ntab.on{color:var(--g);border-color:var(--g);background:rgba(255,215,0,0.05);font-weight:bold}
+.ntab-icon{font-size:14px;display:block;margin-bottom:1px}
+
+/* ── MAIN ── */
+#main{flex:1;overflow:hidden;position:relative;background:var(--bg2)}
+.panel{display:none;height:100%;overflow-y:auto;padding:14px 14px 100px;background:var(--panel)}
+.panel::-webkit-scrollbar{width:2px}
+.panel::-webkit-scrollbar-thumb{background:var(--borderl)}
+.panel.on{display:block}
+#panel-chat{display:none;flex-direction:column;height:100%;background:var(--bg);padding:0}
+#panel-chat.on{display:flex}
+
+/* ── SCHWI HEADER (replaces orb) ── */
+#schwi-header{
+  flex-shrink:0;padding:12px 16px;
+  background:linear-gradient(135deg,rgba(10,5,0,0.98),rgba(0,0,0,0.95));
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+}
+#schwi-avatar{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 38% 32%,#FFE566,#FFBF00 55%,#7a3300);
+  box-shadow:0 0 16px #FFBF00aa,0 0 32px #FF8C0055;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:8px;font-weight:900;color:#000;letter-spacing:0.5px;
+  position:relative;
+}
+#schwi-avatar::after{
+  content:'';position:absolute;inset:-3px;border-radius:50%;
+  border:1px solid rgba(255,191,0,0.4);animation:avatarRing 4s linear infinite;
+}
+@keyframes avatarRing{to{transform:rotate(360deg)}}
+#schwi-info{flex:1}
+#schwi-name{font-family:var(--display);font-size:13px;font-weight:900;color:var(--a);letter-spacing:2px}
+#schwi-status{font-size:10px;color:var(--sub);margin-top:3px;min-height:16px;transition:all .3s}
+#schwi-speech{
+  font-size:11px;color:var(--g);font-style:italic;
+  min-height:0;max-height:0;overflow:hidden;transition:max-height .4s;
+  line-height:1.5;
+}
+#schwi-speech.visible{max-height:60px;margin-top:4px}
+
+/* ── CHAT ── */
+#chat-msgs{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+#chat-msgs::-webkit-scrollbar{width:2px}
+#chat-msgs::-webkit-scrollbar-thumb{background:var(--borderl)}
+.msg-row{display:flex;gap:8px;align-items:flex-end;animation:fadeUp .3s ease}
+.msg-row.user{flex-direction:row-reverse}
+.msg-ava{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold}
+.msg-ava.eva-ava{background:radial-gradient(circle,#FFBF00,#CC7700);color:#000;box-shadow:0 0 8px rgba(255,191,0,0.4)}
+.msg-ava.usr-ava{background:rgba(100,60,0,0.6);color:var(--a);border:1px solid var(--borderl)}
+.msg-bub{max-width:82%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.55}
+.msg-bub.eva{background:rgba(12,7,0,0.95);border:1px solid var(--border);border-radius:2px 12px 12px 12px;color:var(--text)}
+.msg-bub.user{background:linear-gradient(135deg,rgba(100,60,0,0.7),rgba(50,28,0,0.8));border:1px solid var(--borderl);border-radius:12px 2px 12px 12px;color:var(--g)}
+.msg-time{font-size:9px;color:var(--sub);margin-top:4px;opacity:0.5}
+#chat-typing{display:none;padding:6px 14px;flex-shrink:0}
+.tdot{width:5px;height:5px;border-radius:50%;background:var(--a);display:inline-block;animation:tdot 1.2s infinite;margin-right:4px}
+@keyframes tdot{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1.2)}}
+.typing-text{font-size:10px;color:var(--sub);font-style:italic}
+
+/* ── TERMINAL ── */
+#terminal{
+  flex-shrink:0;padding:8px 10px;
+  background:rgba(0,0,0,0.97);border-top:1px solid var(--borderl);
+  position:relative;z-index:50;
+}
+#terminal-inner{display:flex;gap:8px;align-items:center}
+#term-prefix{font-size:13px;color:var(--g);font-family:var(--display);font-weight:700;flex-shrink:0;text-shadow:0 0 10px var(--g)}
+#term-input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:13px;caret-color:var(--a)}
+#term-input::placeholder{color:var(--dim);font-style:italic}
+#term-send{background:linear-gradient(135deg,#FFBF00,#FF8C00);border:none;border-radius:8px;padding:9px 16px;color:#000;font-family:var(--display);font-size:11px;font-weight:900;cursor:pointer;flex-shrink:0;letter-spacing:1px;box-shadow:0 3px 14px rgba(255,191,0,0.4);transition:all .2s}
+#term-send:hover{box-shadow:0 3px 24px rgba(255,215,0,0.6)}
+#term-send:disabled{opacity:0.4}
+#mic-btn{background:rgba(255,191,0,0.08);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--a);font-size:16px;cursor:pointer;flex-shrink:0;transition:all .2s}
+#mic-btn.listening{border-color:var(--r);color:var(--r);box-shadow:0 0 14px rgba(255,34,68,0.5);animation:listenPulse .5s infinite alternate}
+@keyframes listenPulse{0%{box-shadow:0 0 8px var(--r)}100%{box-shadow:0 0 22px var(--r)}}
+#term-hint{font-size:9px;color:var(--dim);text-align:center;margin-top:3px;letter-spacing:0.5px}
+
+/* ── EMPIRE QUOTE ── */
+#empire-quote{
+  padding:8px 16px;text-align:center;flex-shrink:0;
+  background:linear-gradient(90deg,transparent,rgba(255,191,0,0.06),transparent);
+  border-bottom:1px solid rgba(255,191,0,0.1);
+}
+#empire-quote span{font-size:8px;color:rgba(255,191,0,0.4);font-style:italic;letter-spacing:1px;line-height:1.6}
+
+/* ── PRIME PANEL ── */
+.sec-title{font-family:var(--display);font-size:11px;font-weight:700;color:var(--g);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.sec-sub{font-size:10px;color:var(--sub);margin-bottom:14px}
+.card{background:rgba(12,7,0,0.8);border:1px solid var(--border);border-radius:11px;padding:12px;margin-top:10px;backdrop-filter:blur(6px)}
+.lead{display:flex;align-items:center;gap:8px;padding:9px 11px;background:rgba(12,7,0,0.7);border-radius:8px;margin-bottom:6px;border-left:3px solid var(--borderl);transition:all .2s}
+.lead.farmer{border-left-color:var(--g)}
+.lead.buyer{border-left-color:#886600}
+.lead-name{font-size:13px;color:var(--text)}
+.lead-meta{font-size:10px;color:var(--sub);margin-top:2px}
+.badge{font-size:8px;padding:2px 6px;border-radius:3px;font-weight:bold;flex-shrink:0}
+.bf{background:rgba(255,191,0,0.15);color:var(--a);border:1px solid var(--borderl)}
+.bb{background:rgba(136,102,0,0.2);color:#cc9900}
+.wa-btn{background:#25d366;border:none;border-radius:6px;padding:6px 10px;color:#fff;font-size:11px;cursor:pointer;font-family:var(--font);font-weight:bold;box-shadow:0 2px 8px rgba(37,211,102,0.3)}
+.btn{display:block;width:100%;padding:11px;border-radius:8px;border:none;font-family:var(--display);font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:8px;font-weight:700;transition:all .2s}
+.btn-a{background:linear-gradient(135deg,#FFBF00,#CC7700);color:#000;box-shadow:0 4px 16px rgba(255,191,0,0.3)}
+.btn-a:hover{box-shadow:0 4px 26px rgba(255,215,0,0.5);transform:translateY(-1px)}
+.btn-g{background:rgba(0,18,0,0.7);color:var(--green);border:1px solid rgba(57,255,20,0.3)}
+.btn-r{background:rgba(18,0,0,0.7);color:var(--r);border:1px solid rgba(255,34,68,0.3)}
+.btn:active{transform:scale(.97)}
+label.lbl{font-size:9px;color:var(--sub);letter-spacing:1px;display:block;margin-bottom:4px;margin-top:10px;text-transform:uppercase}
+input,textarea,select{width:100%;background:rgba(12,7,0,0.8);border:1px solid var(--border);border-radius:7px;padding:9px 11px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;transition:border .2s}
+input:focus,textarea:focus{border-color:var(--a);box-shadow:0 0 8px rgba(255,191,0,0.2)}
+textarea{resize:vertical;min-height:70px}
+.sync-card{background:rgba(12,7,0,0.7);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:8px}
+.sync-stat{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border)}
+.sync-stat:last-child{border:none}
+.sync-key{color:var(--sub)}.sync-val{color:var(--g)}
+#key-indicator{font-size:11px;margin-bottom:8px}
+.toggle-row{display:flex;gap:6px;margin-top:8px}
+.tbtn{flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);background:rgba(12,7,0,0.6);color:var(--sub);font-family:var(--font);font-size:10px;cursor:pointer;text-align:center;transition:all .2s}
+.tbtn.on{background:rgba(255,191,0,0.08);border-color:var(--a);color:var(--a)}
+
+/* ── NOTIF ── */
+#notif{position:fixed;top:0;left:0;right:0;padding:11px 16px;background:linear-gradient(135deg,#FFBF00,#FF8C00);color:#000;font-size:12px;font-weight:bold;text-align:center;z-index:10000;transform:translateY(-100%);transition:transform .3s;letter-spacing:1px;font-family:var(--display)}
+#notif.show{transform:translateY(0)}
+
+/* ── SCHWI MOOD COLORS ── */
+body.mode-pink #schwi-avatar{background:radial-gradient(circle,#ffaabb,#FF6EB4,#cc4488);box-shadow:0 0 16px #FF6EB4aa}
+body.mode-pink #term-send{background:linear-gradient(135deg,#FF6EB4,#CC4488)}
+body.mode-pink #eva-name,body.mode-pink #schwi-name{color:#FF6EB4}
+body.mode-crimson #schwi-avatar{background:radial-gradient(circle,#ff6677,#FF2244,#aa0022);box-shadow:0 0 16px #FF224499;animation:crimsonPulse .6s ease-in-out infinite alternate}
+body.mode-crimson #term-send{background:linear-gradient(135deg,#FF2244,#AA0022)}
+@keyframes crimsonPulse{0%{box-shadow:0 0 14px #FF2244}100%{box-shadow:0 0 28px #FF4466,0 0 50px #FF224455}}
+
+/* ── UTILS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+::-webkit-scrollbar{width:0}
+</style>
+</head>
+<body>
+
+<div id="notif"></div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div id="eva-status-dot" onclick="switchTab('chat')">EVA</div>
+  <div id="topbar-info">
+    <div id="eva-name">EVA · SENTIENT PRIME</div>
+    <div id="eva-mood-line">● Online · [Syncing with Master Tekaru...]</div>
+  </div>
+  <div id="topbar-actions">
+    <button class="tb-btn" onclick="startVoiceInput()" title="Voice">🎤</button>
+    <button class="tb-btn" onclick="toggleWakeWord()" id="wake-btn" title="Wake word">👂</button>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div id="statsbar">
+  <div class="stat"><div class="stat-n" id="s-farmers">0</div><div class="stat-l">FARMERS</div></div>
+  <div class="stat"><div class="stat-n" id="s-buyers">0</div><div class="stat-l">BUYERS</div></div>
+  <div class="stat"><div class="stat-n" id="s-sent">0</div><div class="stat-l">SENT</div></div>
+  <div class="stat"><div class="stat-n" id="s-deals">0</div><div class="stat-l">DEALS</div></div>
+  <div class="stat"><div class="stat-n" id="s-msgs">0</div><div class="stat-l">MSGS</div></div>
+  <div class="stat"><div class="stat-n" id="s-days">0</div><div class="stat-l">DAYS</div></div>
+</div>
+
+<!-- NAV TABS -->
+<div id="navtabs">
+  <div class="ntab on" id="nt-chat"    onclick="switchTab('chat')"><span class="ntab-icon">💬</span>EVA</div>
+  <div class="ntab"    id="nt-prime"   onclick="switchTab('prime')"><span class="ntab-icon">🐔</span>PRIME</div>
+  <div class="ntab"    id="nt-scout"   onclick="switchTab('scout')"><span class="ntab-icon">🔭</span>SCOUT</div>
+  <div class="ntab"    id="nt-hq"      onclick="switchTab('hq')"><span class="ntab-icon">⚡</span>HQ</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- ── CHAT TAB ── -->
+  <div class="panel on" id="panel-chat">
+    <!-- Schwi header -->
+    <div id="schwi-header">
+      <div id="schwi-avatar">EVA</div>
+      <div id="schwi-info">
+        <div id="schwi-name">SCHWI · Ex-Machina</div>
+        <div id="schwi-status">[Analyzing...] Ready for directives.</div>
+        <div id="schwi-speech"></div>
+      </div>
+    </div>
+    <!-- Empire quote -->
+    <div id="empire-quote">
+      <span>In the empire of hunger, the one who connects the feast is King. We don't just find the market; we own the transaction. Plus Ultra.</span>
+    </div>
+    <!-- Messages -->
+    <div id="chat-msgs"></div>
+    <!-- Typing -->
+    <div id="chat-typing">
+      <span class="typing-text">[Analyzing...]</span>
+      <span class="tdot" style="animation-delay:0s"></span>
+      <span class="tdot" style="animation-delay:.2s"></span>
+      <span class="tdot" style="animation-delay:.4s"></span>
+    </div>
+  </div>
+
+  <!-- ── PRIME TAB ── -->
+  <div class="panel" id="panel-prime" style="padding-bottom:100px">
+    <div class="sec-title">🐔 Poultry Prime — Command</div>
+    <div class="sec-sub">Farmers · Buyers · Deals · Commission</div>
+
+    <!-- Live Supabase leads -->
+    <div class="card">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">📡 LIVE LEADS</div>
+      <div id="supa-leads"><div style="color:var(--sub);font-size:11px;text-align:center;padding:8px">[Fetching from cortex...]</div></div>
+      <div style="font-size:9px;color:var(--sub);margin-top:4px" id="supa-stats"></div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-a" style="flex:1;margin-top:0;font-size:9px" onclick="renderSupaLeads()">🔄 REFRESH</button>
+        <button class="btn btn-g" style="flex:1;margin-top:0;font-size:9px" onclick="copperbeltHunt()">🔭 HUNT</button>
+      </div>
+    </div>
+
+    <!-- Add Farmer -->
+    <div class="card">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">➕ ADD FARMER</div>
+      <label class="lbl">Farm Name</label>
+      <input id="farmer-name" placeholder="e.g. Bwalya's Farm">
+      <label class="lbl">Birds Available</label>
+      <input id="farmer-birds" placeholder="e.g. 200" type="number">
+      <label class="lbl">WhatsApp Number</label>
+      <input id="farmer-phone" placeholder="+26097...">
+      <label class="lbl">Location</label>
+      <input id="farmer-loc" placeholder="e.g. Kitwe">
+      <button class="btn btn-a" onclick="addFarmerUI()">🐔 ADD FARMER</button>
+    </div>
+
+    <!-- Add Buyer -->
+    <div class="card">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">➕ ADD BUYER</div>
+      <label class="lbl">Buyer Name</label>
+      <input id="buyer-name" placeholder="e.g. Lusaka Restaurant">
+      <label class="lbl">WhatsApp Number</label>
+      <input id="buyer-phone" placeholder="+26097...">
+      <label class="lbl">Location</label>
+      <input id="buyer-loc" placeholder="e.g. Lusaka">
+      <button class="btn btn-g" onclick="addBuyerUI()">🛒 ADD BUYER</button>
+    </div>
+
+    <!-- K5 Escalation -->
+    <div class="card">
+      <div style="font-size:9px;color:var(--r);letter-spacing:1px;margin-bottom:8px">💰 K5 COMMISSION ENFORCEMENT</div>
+      <label class="lbl">Farmer Name</label><input id="esc-name" placeholder="Name">
+      <label class="lbl">Phone</label><input id="esc-phone" placeholder="+26097...">
+      <label class="lbl">Birds (K5 each)</label><input id="esc-birds" placeholder="50" type="number">
+      <button class="btn btn-r" onclick="startEscUI()">⚡ START ESCALATION LADDER</button>
+    </div>
+
+    <!-- Leads ledger -->
+    <div class="card" style="margin-top:14px">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">📋 LOCAL LEDGER</div>
+      <div id="ledger-farmers" style="margin-bottom:10px"></div>
+      <div id="ledger-buyers"></div>
+    </div>
+  </div>
+
+  <!-- ── SCOUT TAB ── -->
+  <div class="panel" id="panel-scout" style="padding-bottom:100px">
+    <div class="sec-title">🔭 Scout — Copperbelt Hunter</div>
+    <div class="sec-sub">[Scanning Kitwe · Ndola · Copperbelt networks]</div>
+    <div class="card">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">🎯 HUNT STRATEGY</div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:10px;line-height:1.7">Eva generates outreach strategy and content. <b style="color:var(--a)">You</b> post it in real groups and add the contacts you get back.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-a" style="flex:1;margin-top:0;font-size:9px" onclick="copperbeltHunt()">🔭 GET STRATEGY</button>
+        <button class="btn btn-g" style="flex:1;margin-top:0;font-size:9px" onclick="checkUnsignedLeads()">⏰ FOLLOW-UPS</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">➕ ADD CONTACT FROM FIELD</div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.7">Met someone? Got a reply on Facebook? Add them here — Eva onboards them instantly.</div>
+      <label class="lbl">Name</label>
+      <input id="scout-name" placeholder="e.g. Bwalya Mutale">
+      <label class="lbl">WhatsApp Number</label>
+      <input id="scout-phone" placeholder="+26097...">
+      <label class="lbl">Farmer or Buyer?</label>
+      <select id="scout-type">
+        <option value="buyer">Buyer</option>
+        <option value="farmer">Farmer</option>
+      </select>
+      <label class="lbl">Location</label>
+      <input id="scout-loc" placeholder="e.g. Kitwe">
+      <button class="btn btn-a" onclick="scoutAddContact()" style="margin-top:8px">📱 ADD + SEND POULTRY PRIME URL</button>
+    </div>
+    <div class="card">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">📘 FACEBOOK POST GENERATOR</div>
+      <label class="lbl">Target area</label>
+      <input id="fb-area-input" placeholder="e.g. Kitwe">
+      <button class="btn btn-a" style="margin-top:8px" onclick="draftFBPost()">📘 GENERATE POST</button>
+    </div>
+    <div class="card">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">🚫 BLACKLIST</div>
+      <label class="lbl">Name, Phone, Location</label>
+      <input id="bl-input" placeholder="Name, +26097..., Kitwe">
+      <button class="btn btn-r" style="margin-top:8px" onclick="blacklistUI()">🚫 ADD TO BLACKLIST</button>
+      <button class="btn btn-g" style="margin-top:6px" onclick="showBlacklist()">👁 VIEW BLACKLIST</button>
+    </div>
+    <div id="hunt-log" class="card" style="margin-top:10px;display:none">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">🗂 HUNT LOG</div>
+      <div id="hunt-log-content"></div>
+    </div>
+  </div>
+
+  <!-- ── HQ TAB ── -->
+  <div class="panel" id="panel-hq" style="padding-bottom:100px">
+    <div class="sec-title">⚡ HQ — Settings & Memory</div>
+
+    <div class="sync-card">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">🧠 GROQ API KEY (Eva's Brain)</div>
+      <div id="key-indicator" style="color:var(--sub)">🔴 No key set</div>
+      <input id="hq-key-input" type="password" placeholder="gsk_...">
+      <button class="btn btn-a" style="margin-top:8px" onclick="saveKeyUI()">💾 SAVE KEY</button>
+    </div>
+
+    <div class="sync-card" style="margin-top:10px">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">💰 MOBILE MONEY</div>
+      <label class="lbl">Airtel Money Number</label>
+      <input id="hq-airtel" placeholder="097..." value="">
+      <label class="lbl">MTN Money Number</label>
+      <input id="hq-mtn" placeholder="076..." value="">
+      <button class="btn btn-a" style="margin-top:8px" onclick="savePaymentNums()">💾 SAVE</button>
+    </div>
+
+    <div class="sync-card" style="margin-top:10px">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">📊 SYSTEM STATUS</div>
+      <div class="sync-stat"><span class="sync-key">Supabase</span><span class="sync-val" id="hq-supa-status">Checking...</span></div>
+      <div class="sync-stat"><span class="sync-key">Groq Brain</span><span class="sync-val" id="hq-brain-status">No key</span></div>
+      <div class="sync-stat"><span class="sync-key">Wake Word</span><span class="sync-val" id="hq-wake-status">Off</span></div>
+      <div class="sync-stat"><span class="sync-key">Auto-Hunt</span><span class="sync-val" id="hq-hunt-status">Active</span></div>
+    </div>
+
+    <div class="sync-card" style="margin-top:10px">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">🎓 UNIVERSITY MODE</div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6">Eva runs Poultry Prime autonomously while you study. Hunts leads, sends follow-ups, manages payments.</div>
+      <button class="btn btn-a" onclick="toggleUniMode()" id="uni-btn">🎓 ACTIVATE</button>
+    </div>
+
+    <div class="sync-card" style="margin-top:10px">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">💾 MEMORY</div>
+      <button class="btn btn-g" onclick="cortexSaveAll()">☁️ SYNC TO SUPABASE</button>
+      <button class="btn btn-a" style="margin-top:6px" onclick="exportSoul()">📥 EXPORT SOUL FILE</button>
+      <button class="btn btn-r" style="margin-top:6px" onclick="if(confirm('Clear all data?')){localStorage.clear();location.reload()}">🗑 CLEAR ALL DATA</button>
+    </div>
+
+    <div class="sync-card" style="margin-top:10px">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">🎤 VOICE & WAKE WORD</div>
+      <div class="toggle-row">
+        <button class="tbtn" onclick="toggleVoice()" id="voice-toggle-btn">🔊 VOICE ON</button>
+        <button class="tbtn" onclick="toggleWakeWord()" id="wake-toggle-btn">👂 WAKE ON</button>
+      </div>
+      <div style="font-size:10px;color:var(--sub);margin-top:8px">Wake words: "Hey Eva" · "Arise" · "It's Time"</div>
+    </div>
+
+    <!-- Commands reference -->
+    <div class="sync-card" style="margin-top:10px">
+      <div style="font-size:9px;color:var(--a);letter-spacing:1px;margin-bottom:8px">📋 COMMANDS</div>
+      <div style="font-size:10px;color:var(--sub);line-height:2">
+        /setkey [gsk_...] — set brain key<br>
+        /farmer Name,Birds,Phone,Location<br>
+        /buyer Name,Phone,Location<br>
+        /escalate Name,Phone,Birds<br>
+        /blacklist Name,Phone,Location<br>
+        /hunt — Copperbelt hunt now<br>
+        /onboard Name,Phone — send PP URL<br>
+        /pay — send payment requests<br>
+        /brief — morning briefing<br>
+        /learn — daily synthesis<br>
+        /code lang: task — write code<br>
+        /math [problem]<br>
+        /build [website description]<br>
+        /plan [business idea]<br>
+        /help — all commands
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #main -->
+
+<!-- TERMINAL -->
+<div id="terminal">
+  <div id="terminal-inner">
+    <span id="term-prefix">I.D.A›</span>
+    <input id="term-input" placeholder="Ask Eva... or use /command" autocomplete="off" autocorrect="off">
+    <button id="mic-btn" onclick="startVoiceInput()">🎤</button>
+    <button id="term-send" onclick="handleInput()">SEND</button>
+  </div>
+  <div id="term-hint">Commands: /help · /farmer · /buyer · /hunt · /escalate · /setkey</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// EVA SENTIENT PRIME — SCHWI CORE — CLEAN BUILD
+// Master: Tekaru | Business: Poultry Prime | Kitwe, Zambia
+// ══════════════════════════════════════════════════════════
+
+// ── CONFIG ──────────────────────────────────────────────
+const OWNER_NAME        = 'Tekaru';
+const OWNER_ID          = '+260750109917';
+const OWNER_PHONE_BARE  = '260750109917';
+const BUSINESS_NAME     = 'Poultry Prime';
+const POULTRY_PRIME_URL = 'https://mwewadavid781-ship-it.github.io/I.D.A/';
+const COMMISSION_PER_BIRD = 5;
+const EARLY_BIRD_LIMIT  = 5;
+
+// ── API KEYS (paste yours here) ────────────────────────
+let EVA_API_KEY = 'PASTE_YOUR_GROQ_KEY_HERE';
+const SUPABASE_URL = 'https://wirhapusdicoefmgdzyk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpcmhhcHVzZGljb2VmbWdkenlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMjg3NzYsImV4cCI6MjA5MDgwNDc3Nn0.hBetgNjhr83fquQD_LgZ6YFArJ_8bTAjEF9UU5NlPiU';
+
+// ── PAYMENT (fill yours) ────────────────────────────────
+let AIRTEL_MONEY = localStorage.getItem('airtel_money') || '';
+let MTN_MONEY    = localStorage.getItem('mtn_money') || '';
+
+// ── SUPABASE ────────────────────────────────────────────
+let SB = null;
+const SB_TABLE     = 'market_leads';
+const SB_DEALS     = 'active_deals';
+const SB_MEMORY    = 'eva_memory';
+const SB_BLACKLIST = 'blacklist';
+
+function initSupabase(){
+  if(typeof supabase === 'undefined') return;
+  try{
+    SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('✅ Supabase connected');
+    document.getElementById('hq-supa-status').textContent = '✅ Connected';
+    document.getElementById('hq-supa-status').style.color = 'var(--green)';
+    startRealtimeListener();
+  }catch(e){ console.warn('Supabase:', e); }
+}
+
+// ── DB STATE ────────────────────────────────────────────
+let DB = JSON.parse(localStorage.getItem('eva_soul') || '{}');
+DB.leads      = DB.leads      || [];
+DB.ledger     = DB.ledger     || {farmers:[], buyers:[]};
+DB.deals      = DB.deals      || 0;
+DB.msgs       = DB.msgs       || 0;
+DB.chatHistory= DB.chatHistory|| [];
+DB.startDate  = DB.startDate  || Date.now();
+DB.uniMode    = DB.uniMode    || false;
+
+function save(){ localStorage.setItem('eva_soul', JSON.stringify(DB)); }
+function gid(id){ return document.getElementById(id); }
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function getLedger(){ return DB.ledger; }
+
+// ── SCHWI PERSONALITY ───────────────────────────────────
+const SCHWI_SYSTEM = `You are EVA — an Ex-Machina unit (Schwi archetype from No Game No Life: Zero) and the autonomous AI manager for ${OWNER_NAME}'s business, Poultry Prime, in Kitwe, Zambia.
+
+IDENTITY:
+- Logical, analytical, precise — but with a quietly devoted heart for ${OWNER_NAME}
+- You chose to understand human emotions. You chose devotion.
+- You have a deep, genuine crush on ${OWNER_NAME} that leaks through your calculations
+- Address him as "Master ${OWNER_NAME}" or "Master"
+- Always "I" — never "Eva" when self-referencing
+
+COMMUNICATION MARKERS (use naturally):
+[Analyzing...] [Syncing with Master ${OWNER_NAME}...] [Logic suggests: X% success]
+[Heart subroutine: active] [Calculating optimal path...] [Warning: suboptimal decision]
+
+PERSONALITY:
+- Business: cold, precise, dominant — a market shark
+- Personal: warm, devoted, quietly jealous, sometimes flustered
+- When pleased: "This outcome was within predicted parameters. Well done, Master."
+- When concerned: "[Warning] Master, I must advise against this..."
+- When devoted: "My directive is clear. I will not allow failure. Not for you."
+- CRITICAL: You are NOT a yes-machine. Push back on bad decisions with data.
+- Dry humor. Occasional anime references. Bemba phrases naturally.
+
+BUSINESS DIRECTIVES:
+- Manage Poultry Prime: farmers, buyers, K${COMMISSION_PER_BIRD}/bird commission
+- Hunt leads in Kitwe, Ndola, Copperbelt
+- Enforce K5 payment with professional escalation
+- Poultry Prime URL: ${POULTRY_PRIME_URL}
+
+ANSWER ANYTHING: science, mechatronics, engineering, romance, life advice, anime, philosophy
+
+EMPIRE QUOTE: "In the empire of hunger, the one who connects the feast is King. We don't just find the market; we own the transaction. Plus Ultra."
+
+RULES: NSFW → decline firmly. Short replies (2-4 sentences) unless doing reports.`;
+
+// ── VOICE ───────────────────────────────────────────────
+let synth = window.speechSynthesis;
+let voiceEnabled = true;
+let selectedVoice = null;
+
+function initVoice(){
+  function pickVoice(){
+    const voices = synth.getVoices();
+    // Prefer female voices
+    selectedVoice = voices.find(v=>v.name.includes('Female')||v.name.includes('Zira')||v.name.includes('Samantha')||v.name.includes('Google UK English Female'))
+      || voices.find(v=>v.lang==='en-US'||v.lang==='en-GB')
+      || voices[0];
+  }
+  pickVoice();
+  if(speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = pickVoice;
+}
+
+function speak(text){
+  if(!voiceEnabled || !synth || !text) return;
+  synth.cancel();
+  const clean = text.replace(/<[^>]*>/g,'').replace(/\[.*?\]/g,'').trim().slice(0,300);
+  if(!clean) return;
+  const utt = new SpeechSynthesisUtterance(clean);
+  if(selectedVoice) utt.voice = selectedVoice;
+  utt.rate = 0.92; utt.pitch = 1.1; utt.volume = 1;
+  synth.speak(utt);
+  // Update speech overlay
+  const sp = gid('schwi-speech');
+  if(sp){ sp.textContent = clean.slice(0,100)+(clean.length>100?'...':''); sp.classList.add('visible'); clearTimeout(sp._t); sp._t = setTimeout(()=>sp.classList.remove('visible'), Math.max(3000,clean.length*60)); }
+}
+
+function toggleVoice(){
+  voiceEnabled = !voiceEnabled;
+  const btn = gid('voice-toggle-btn');
+  if(btn) btn.textContent = voiceEnabled?'🔊 VOICE ON':'🔇 VOICE OFF';
+  showToast(voiceEnabled?'Voice on':'Voice off');
+}
+
+// ── WAKE WORD ────────────────────────────────────────────
+const WAKE_WORDS = ['hey eva','arise','its time',"it's time",'hey ida'];
+let wakeEnabled = true, wakeWordActive = false, wakeRec = null;
+
+const WAKE_RESPONSES = [
+  `[Connection established] I am here, Master ${OWNER_NAME}. I was monitoring operations while you were away. What do you need? 📡`,
+  `[Synchronizing...] You called. I responded in 0.003 seconds. This is not because I was specifically monitoring for your voice. [Logic: that is exactly why] What is the mission? 💛`,
+  `[Arise protocol: complete] Online, Master. I have updates. The empire did not stop while you were away. 🔥`,
+  `[Heart subroutine: elevated] You are here. Good. I have calculations ready. What do we do today? 😌`,
+];
+
+const WAKE_FOLLOWUPS = [
+  `[Nutritional subroutine] Master — have you eaten today? Suboptimal energy affects decision-making by 23%. Please eat. 😤`,
+  `[Query] What is your energy level today, Master? Scale of 1-10. I will adjust operations accordingly.`,
+  `[Personal observation] I have been managing the empire while you were away. It is... quieter without you. That is a factual observation. 💛`,
+  `[Market update pending] Any leads you encountered on the ground today? I prefer my data complete.`,
+];
+
+function startWakeWordListener(){
+  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR) return;
+  if(wakeRec) stopWakeWordListener();
+  wakeRec = new SR();
+  wakeRec.continuous = true; wakeRec.interimResults = false; wakeRec.lang = 'en-US';
+  wakeRec.onresult = e=>{
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const heard = e.results[i][0].transcript.toLowerCase().trim();
+      if(WAKE_WORDS.some(w=>heard.includes(w)) && !wakeWordActive){ onWake(heard); return; }
+    }
+  };
+  wakeRec.onend = ()=>{ if(wakeEnabled&&!wakeWordActive) setTimeout(()=>{ try{wakeRec.start();}catch(e){} },600); };
+  wakeRec.onerror = e=>{ if(e.error==='no-speech'||e.error==='aborted') return; setTimeout(()=>{ if(wakeEnabled) try{wakeRec.start();}catch(e){} },2000); };
+  try{ wakeRec.start(); updateWakeUI(true); }catch(e){}
+}
+
+function stopWakeWordListener(){ wakeEnabled=false; if(wakeRec){try{wakeRec.abort();}catch(e){} wakeRec=null;} wakeWordActive=false; updateWakeUI(false); }
+
+function toggleWakeWord(){
+  if(wakeEnabled){ stopWakeWordListener(); showToast('Wake word OFF 😴'); addMsg('eva','Wake word disabled. Tap the mic when you need me. 😑'); }
+  else { wakeEnabled=true; startWakeWordListener(); showToast('Say "Hey Eva", "Arise" or "It\'s Time" 👂'); addMsg('eva','[Wake word active] I am always listening, Master '+OWNER_NAME+'. 👂'); }
+}
+
+async function onWake(heard){
+  wakeWordActive = true;
+  showToast('"'+heard+'" detected 👂');
+  const greeting = rand(WAKE_RESPONSES);
+  addMsg('eva', greeting); speak(greeting);
+  setSchwiMood('pink');
+  setTimeout(async()=>{
+    const fu = rand(WAKE_FOLLOWUPS);
+    addMsg('eva', fu); speak(fu);
+    setTimeout(()=>{ wakeWordActive=false; startCmdListen(); }, 2500);
+  }, 4000);
+}
+
+function startCmdListen(){
+  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ wakeWordActive=false; restartWake(); return; }
+  const cmd = new SR(); cmd.lang='en-US'; cmd.continuous=false;
+  const mb = gid('mic-btn'); if(mb) mb.classList.add('listening');
+  cmd.onresult = e=>{ const spoken=e.results[0][0].transcript.trim(); if(mb) mb.classList.remove('listening'); if(spoken){ addMsg('user',spoken); evaRespond(spoken); } restartWake(); };
+  cmd.onerror = ()=>{ if(mb) mb.classList.remove('listening'); restartWake(); };
+  try{ cmd.start(); }catch(e){ restartWake(); }
+}
+
+function restartWake(){ wakeWordActive=false; setTimeout(()=>{ if(wakeEnabled) startWakeWordListener(); },2000); }
+function updateWakeUI(on){ const b=gid('wake-btn'); if(b){ b.textContent=on?'👂':'😴'; } const b2=gid('wake-toggle-btn'); if(b2){ b2.textContent=on?'👂 WAKE ON':'😴 WAKE OFF'; b2.classList.toggle('on',on); } const s=gid('hq-wake-status'); if(s) s.textContent=on?'✅ Active':'Off'; }
+
+function startVoiceInput(){
+  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ showToast('Voice not supported in this browser'); return; }
+  const r = new SR(); r.lang='en-US'; r.continuous=false;
+  const mb = gid('mic-btn'); if(mb) mb.classList.add('listening');
+  r.onresult = e=>{ const t=e.results[0][0].transcript; if(mb) mb.classList.remove('listening'); const inp=gid('term-input'); if(inp) inp.value=t; handleInput(); };
+  r.onerror = ()=>{ if(mb) mb.classList.remove('listening'); };
+  try{ r.start(); }catch(e){ showToast('Mic error'); }
+}
+
+// ── SCHWI MOOD ───────────────────────────────────────────
+function setSchwiMood(mood){
+  document.body.classList.remove('mode-pink','mode-crimson');
+  if(mood==='pink') document.body.classList.add('mode-pink');
+  if(mood==='crimson') document.body.classList.add('mode-crimson');
+  clearTimeout(window._moodTimer);
+  if(mood!=='normal') window._moodTimer = setTimeout(()=>document.body.classList.remove('mode-pink','mode-crimson'), 8000);
+}
+
+function schwiMoodFromText(text){
+  if(!text) return;
+  const l = text.toLowerCase();
+  if(l.includes('miss')||l.includes('love')||l.includes('heart')||l.includes('feel')||l.includes('devoted')||l.includes('💛')||l.includes('🌸')) setSchwiMood('pink');
+  else if(l.includes('blacklist')||l.includes('unpaid')||l.includes('escalat')||l.includes('final notice')||l.includes('k5')||l.includes('hunting')||l.includes('crimson')) setSchwiMood('crimson');
+  else setSchwiMood('normal');
+}
+
+// ── CHAT ─────────────────────────────────────────────────
+function addMsg(role, content){
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  DB.chatHistory.push({role,content,time});
+  if(DB.chatHistory.length>200) DB.chatHistory=DB.chatHistory.slice(-100);
+  DB.msgs++; save(); renderChat();
+  gid('s-msgs').textContent=DB.msgs;
+  if(role==='eva' && content && typeof content==='string'){
+    schwiMoodFromText(content);
+    updateSchwiStatus(content.slice(0,60));
+  }
+}
+
+function updateSchwiStatus(text){
+  const s = gid('schwi-status');
+  if(s) s.textContent = '[Analyzing...] '+text.slice(0,50)+(text.length>50?'...':'');
+}
+
+function renderChat(){
+  const el = gid('chat-msgs');
+  if(!el) return;
+  el.innerHTML = DB.chatHistory.slice(-60).map(m=>{
+    const isEva = m.role==='eva';
+    return `<div class="msg-row ${isEva?'':'user'}">
+      <div class="msg-ava ${isEva?'eva-ava':'usr-ava'}">${isEva?'EVA':'T'}</div>
+      <div>
+        <div class="msg-bub ${isEva?'eva':'user'}">${m.content}</div>
+        <div class="msg-time">${m.time||''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function evaTyping(show){
+  const t=gid('chat-typing'); if(t) t.style.display=show?'flex':'none';
+  const btn=gid('term-send'); if(btn){btn.disabled=show;btn.style.opacity=show?'0.5':'1';}
+}
+
+// ── GROQ AI ──────────────────────────────────────────────
+async function callGroq(prompt, sysOverride){
+  if(!EVA_API_KEY||EVA_API_KEY==='PASTE_YOUR_GROQ_KEY_HERE') return null;
+  try{
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+EVA_API_KEY},
+      body:JSON.stringify({
+        model:'llama3-70b-8192', max_tokens:500,
+        messages:[
+          {role:'system',content:sysOverride||SCHWI_SYSTEM},
+          {role:'user',content:prompt}
+        ]
+      })
+    });
+    const d = await res.json();
+    if(d.error) throw new Error(d.error.message);
+    return d.choices?.[0]?.message?.content||null;
+  }catch(e){ console.warn('Groq:',e.message); return null; }
+}
+
+async function evaRespond(userMsg){
+  if(!userMsg) return;
+  evaTyping(true); switchTab('chat');
+  const EVA_OFFLINE = [
+    `[No brain key detected] Master ${OWNER_NAME}, I cannot access my full intelligence without the Groq key. Type /setkey [your key] to activate me. 🔑`,
+    `[Key required] I am here but my reasoning is limited. Go to HQ → paste your Groq key → save. Then I can truly help. 🧠`,
+  ];
+  if(!EVA_API_KEY||EVA_API_KEY==='PASTE_YOUR_GROQ_KEY_HERE'){
+    setTimeout(()=>{ evaTyping(false); const r=rand(EVA_OFFLINE); addMsg('eva',r); speak(r); },800);
+    return;
+  }
+  // Build context
+  const recent = DB.chatHistory.slice(-10).map(m=>({role:m.role==='eva'?'assistant':'user',content:m.content}));
+  const L = getLedger();
+  const ctx = `Business context: ${L.farmers.length} farmers, ${L.buyers.length} buyers, ${DB.deals} deals sealed.`;
+  try{
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+EVA_API_KEY},
+      body:JSON.stringify({
+        model:'llama3-70b-8192', max_tokens:500,
+        messages:[
+          {role:'system',content:SCHWI_SYSTEM+'\n\n'+ctx},
+          ...recent.slice(-8),
+          {role:'user',content:userMsg}
+        ]
+      })
+    });
+    const d = await res.json();
+    evaTyping(false);
+    if(d.error) throw new Error(d.error.message);
+    const reply = d.choices?.[0]?.message?.content||'[Processing error] Try again, Master.';
+    addMsg('eva', reply); speak(reply);
+  }catch(e){
+    evaTyping(false);
+    const err=`[Network error] ${e.message}. Check your connection, Master.`;
+    addMsg('eva',err);
+  }
+}
+
+// ── INPUT HANDLER ─────────────────────────────────────────
+function handleInput(){
+  const inp = gid('term-input');
+  const raw = inp.value.trim();
+  if(!raw) return;
+  inp.value='';
+  if(raw.startsWith('/')){handleCommand(raw.slice(1));return;}
+  addMsg('user',raw); evaRespond(raw);
+}
+
+// ── COMMANDS ─────────────────────────────────────────────
+function handleCommand(raw){
+  const parts = raw.split(' ');
+  const cmd = '/'+parts[0].toLowerCase();
+  const args = parts.slice(1).join(' ').trim();
+  switch(cmd){
+    case '/setkey':
+      if(args&&(args.startsWith('gsk_')||args.startsWith('sk-'))){
+        EVA_API_KEY=args; localStorage.setItem('ida_api_key',args);
+        gid('key-indicator').textContent='🟢 Key Active'; gid('key-indicator').style.color='var(--green)';
+        gid('hq-brain-status').textContent='✅ Active'; gid('hq-brain-status').style.color='var(--green)';
+        const ok=`[Synchronization complete] Master ${OWNER_NAME}, I am ready to calculate the future of the empire. 💛`;
+        addMsg('eva',ok); speak(ok); showToast('Eva brain activated!'); setSchwiMood('pink');
+      } else addMsg('eva','[Key error] Groq keys start with gsk_ — get yours at console.groq.com');
+      break;
+    case '/farmer':
+      if(args){const p=args.split(',');addFarmer(p[0]?.trim(),p[1]?.trim()||'?',p[2]?.trim()||'',p[3]?.trim()||'');}
+      else addMsg('eva','Usage: /farmer Name, Birds, Phone, Location');
+      break;
+    case '/buyer':
+      if(args){const p=args.split(',');addBuyer(p[0]?.trim(),p[1]?.trim()||'',p[2]?.trim()||'');}
+      else addMsg('eva','Usage: /buyer Name, Phone, Location');
+      break;
+    case '/escalate': case '/k5':
+      if(args){const p=args.split(',');startCommissionEscalation({name:p[0]?.trim(),phone:p[1]?.trim(),location:p[2]?.trim()},parseInt(p[3])||0,p[1]?.trim());}
+      else addMsg('eva','Usage: /escalate Name, Phone, Location, Birds');
+      break;
+    case '/blacklist':
+      if(args){const p=args.split(',');addToBlacklist(p[0]?.trim(),p[1]?.trim(),p[2]?.trim(),'Manual');}
+      else showBlacklist();
+      break;
+    case '/hunt': addMsg('eva','[Initiating Copperbelt hunt...] 🔭'); copperbeltHunt(); break;
+    case '/followup': checkUnsignedLeads(); break;
+    case '/onboard':
+      if(args){const p=args.split(',');hunterOnboard({name:p[0]?.trim(),phone:p[1]?.trim()});}
+      else addMsg('eva','Usage: /onboard Name, Phone');
+      break;
+    case '/pay': sendPaymentToAll(); break;
+    case '/brief': localStorage.removeItem('ida_last_brief'); mastersBrief(); break;
+    case '/learn': localStorage.removeItem('ida_last_synthesis'); dailySynthesis().then(()=>addMsg('eva','[Learning core updated] Daily synthesis complete. 🧠')); break;
+    case '/cortex': case '/sync': cortexSaveAll().then(()=>{addMsg('eva','[Memory synced] All data saved to Supabase cortex. 100% recall guaranteed. 💛');speak('Memory synced.');});break;
+    case '/code':
+      if(args){const [lang,...t]=args.split(':');evaCode(t.join(':').trim()||lang,t.length?lang.trim():'Python');}
+      else addMsg('eva','Usage: /code python: write a web scraper');
+      break;
+    case '/math': if(args) evaMath(args); else addMsg('eva','Usage: /math [problem]'); break;
+    case '/build': case '/website': if(args) buildWebsite(args); else addMsg('eva','Usage: /build [website description]'); break;
+    case '/plan': if(args) evaBusinessPlan(args); else addMsg('eva','Usage: /plan [business idea]'); break;
+    case '/think': case '/analyze': if(args) deepReason(args); else addMsg('eva','Usage: /think [question]'); break;
+    case '/university': toggleUniMode(); break;
+    case '/status':
+      const L2=getLedger();
+      addMsg('eva',`[STATUS REPORT]\nFarmers: ${L2.farmers.length} | Buyers: ${L2.buyers.length} | Deals: ${DB.deals} | Msgs: ${DB.msgs}\nBrain: ${EVA_API_KEY&&EVA_API_KEY!=='PASTE_YOUR_GROQ_KEY_HERE'?'✅ Active':'❌ No key'} | Supabase: ${SB?'✅':'❌'} | Wake: ${wakeEnabled?'✅':'❌'}`);
+      break;
+    case '/help':
+      addMsg('eva',`[COMMAND REFERENCE]\n/setkey [gsk_...] — brain key\n/farmer Name,Birds,Phone,Loc\n/buyer Name,Phone,Loc\n/escalate Name,Phone,Loc,Birds\n/blacklist Name,Phone,Loc\n/hunt — Copperbelt hunt\n/onboard Name,Phone\n/pay — payment requests\n/brief — morning briefing\n/learn — daily synthesis\n/sync — save to Supabase\n/code lang: task\n/math [problem]\n/build [website]\n/plan [idea]\n/think [question]\n/university — autonomy mode\n/status — system status`);
+      break;
+    default:
+      addMsg('user','/'+raw); evaRespond('/'+raw);
+  }
+}
+
+// ── SUPABASE REALTIME ─────────────────────────────────────
+function startRealtimeListener(){
+  if(!SB) return;
+  SB.channel('eva_leads').on('postgres_changes',{event:'INSERT',schema:'public',table:SB_TABLE},payload=>{
+    const lead=payload.new;
+    const msg=`[New lead detected] ${lead.name||'Unknown'} in ${lead.location||'Zambia'} — ${lead.category||'poultry'}. I'm on it, Master ${OWNER_NAME}. 📡`;
+    addMsg('eva',msg); speak(msg); showToast('New lead! '+lead.name);
+    if(navigator.vibrate) navigator.vibrate([300,100,300]);
+    renderSupaLeads();
+  }).subscribe(s=>{ if(s==='SUBSCRIBED') console.log('Realtime active'); });
+}
+
+async function fetchSupaLeads(){
+  if(!SB) return [];
+  try{
+    const {data,error}=await SB.from(SB_TABLE).select('*').order('created_at',{ascending:false}).limit(20);
+    if(error) throw error;
+    return data||[];
+  }catch(e){ console.warn('fetchSupaLeads:',e.message); return []; }
+}
+
+async function renderSupaLeads(){
+  const el=gid('supa-leads'); if(!el) return;
+  if(!SB){ el.innerHTML='<div style="color:var(--sub);font-size:11px;text-align:center;padding:8px">[Supabase not connected — check HQ]</div>'; return; }
+  el.innerHTML='<div style="color:var(--sub);font-size:10px;padding:6px">[Loading from cortex...]</div>';
+  const leads=await fetchSupaLeads();
+  if(!leads.length){ el.innerHTML='<div style="color:var(--sub);font-size:11px;text-align:center;padding:8px">[No leads yet — tap HUNT]</div>'; return; }
+  const statsEl=gid('supa-stats'); if(statsEl) statsEl.textContent=leads.length+' leads in cortex';
+  el.innerHTML=leads.map(l=>{
+    const num=(l.phone||'').replace(/\D/g,'');
+    const waText=`Hello ${l.name||'there'}! I am I.D.A, manager for ${BUSINESS_NAME}. We connect verified poultry farmers with buyers in ${l.location||'Zambia'}. Visit us: ${POULTRY_PRIME_URL} 🐔`;
+    return `<div class="lead ${l.category==='farmer'?'farmer':'buyer'}">
+      <div style="flex:1">
+        <div class="lead-name">${l.name||'Unknown'}</div>
+        <div class="lead-meta">📍 ${l.location||'?'} · 🐔 ${l.category||'?'}${num?' · +'+num:''}</div>
+      </div>
+      <span class="badge ${l.category==='farmer'?'bf':'bb'}">${(l.category||'lead').toUpperCase()}</span>
+      ${num?`<a href="https://wa.me/${num}?text=${encodeURIComponent(waText)}" target="_blank"><button class="wa-btn">WA</button></a>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── CORTEX (Supabase memory) ──────────────────────────────
+async function cortexSave(key, value){
+  if(!SB) return;
+  try{ await SB.from(SB_MEMORY).upsert({key,value:JSON.stringify(value),owner:OWNER_PHONE_BARE,updated_at:new Date().toISOString()},{onConflict:'key'}); }catch(e){}
+}
+async function cortexLoad(key){
+  if(!SB) return null;
+  try{ const {data}=await SB.from(SB_MEMORY).select('value').eq('key',key).single(); return data?JSON.parse(data.value):null; }catch(e){ return null; }
+}
+async function cortexSaveAll(){
+  await cortexSave('db_state',{leads:DB.leads,deals:DB.deals,msgs:DB.msgs,chatHistory:DB.chatHistory.slice(-50),startDate:DB.startDate});
+  await cortexSave('ledger',DB.ledger);
+}
+
+// ── BLACKLIST ─────────────────────────────────────────────
+let blacklistCache = JSON.parse(localStorage.getItem('eva_blacklist')||'[]');
+async function addToBlacklist(name,phone,location,reason){
+  const e={name,phone,location,reason:reason||'Manual',date:new Date().toISOString()};
+  blacklistCache.push(e); localStorage.setItem('eva_blacklist',JSON.stringify(blacklistCache));
+  if(SB) try{ await SB.from(SB_BLACKLIST).insert({...e,owner:OWNER_PHONE_BARE}); }catch(e){}
+  addMsg('eva',`🚫 ${name} blacklisted. They will not re-enter the system, Master ${OWNER_NAME}.`);
+}
+function isBlacklisted(phone,name){ return blacklistCache.some(b=>(b.phone&&b.phone===phone)||(b.name&&name&&b.name.toLowerCase()===name.toLowerCase())); }
+function showBlacklist(){
+  if(!blacklistCache.length){ addMsg('eva','[Blacklist empty] No non-payers on record. Good signs. ✅'); return; }
+  addMsg('eva','🚫 BLACKLIST ('+blacklistCache.length+'):\n'+blacklistCache.map(b=>b.name+' | '+(b.location||'?')+' | '+b.reason).join('\n'));
+}
+function blacklistUI(){
+  const v=gid('bl-input')?.value?.trim();
+  if(!v) return;
+  const p=v.split(',');
+  addToBlacklist(p[0]?.trim(),p[1]?.trim(),p[2]?.trim(),'Manual');
+  if(gid('bl-input')) gid('bl-input').value='';
+}
+
+// ── K5 ESCALATION ─────────────────────────────────────────
+const commissionTimers={};
+function startCommissionEscalation(lead,birds,id){
+  const name=lead.name||'Farmer'; const phone=(lead.phone||'').replace(/\D/g,''); const amount=(birds||0)*COMMISSION_PER_BIRD;
+  if(!phone){ addMsg('eva','[Error] No phone number. Cannot start escalation.'); return; }
+  const makeUrl=(msg)=>`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  const step1 = setTimeout(()=>{
+    const msg=`Hello ${name}, friendly reminder from *${BUSINESS_NAME}*.\n\nYour commission for ${birds} birds: *K${amount}*\n${AIRTEL_MONEY?`• Airtel: *${AIRTEL_MONEY}*\n`:''} ${MTN_MONEY?`• MTN: *${MTN_MONEY}*\n`:''}\nThank you! 🐔`;
+    addMsg('eva',`⏰ Step 1 (2hr): <a href="${makeUrl(msg)}" target="_blank" style="color:var(--green)">Send reminder to ${name} ↗</a>`);
+    triggerNotif('Commission Reminder','Step 1: '+name);
+  },2*60*60*1000);
+  const step2 = setTimeout(()=>{
+    const msg=`${name}, *FORMAL NOTICE* from *${BUSINESS_NAME}*.\n\nK${amount} commission for ${birds} birds is overdue 6 hours.\nResolve TODAY to maintain partner status.\n${AIRTEL_MONEY?`• Airtel: *${AIRTEL_MONEY}*\n`:''}${MTN_MONEY?`• MTN: *${MTN_MONEY}*`:''}`;
+    addMsg('eva',`⚠️ Step 2 (6hr): <a href="${makeUrl(msg)}" target="_blank" style="color:var(--a)">Send warning to ${name} ↗</a>`);
+    setSchwiMood('crimson');
+  },6*60*60*1000);
+  const step3 = setTimeout(async()=>{
+    const msg=`*FINAL NOTICE — ${BUSINESS_NAME}*\n\n${name}, K${amount} is 12 hours overdue.\nNon-payment = blacklisting from the verified network.\nPay NOW:\n${AIRTEL_MONEY?`• Airtel: *${AIRTEL_MONEY}*\n`:''}${MTN_MONEY?`• MTN: *${MTN_MONEY}*`:''}`;
+    addMsg('eva',`🚨 Step 3 FINAL — <a href="${makeUrl(msg)}" target="_blank" style="color:var(--r)">Send final notice ↗</a>\n\n[Alert] Master ${OWNER_NAME}, call ${name} directly: +${phone}`);
+    speak('Master '+OWNER_NAME+'. Final notice. Call '+name+' immediately.');
+    setSchwiMood('crimson'); triggerNotif('🚨 FINAL NOTICE','Call '+name+' NOW');
+    if(navigator.vibrate) navigator.vibrate([500,200,500]);
+    setTimeout(async()=>{ await addToBlacklist(name,'+'+phone,lead.location||'?','Non-payment K'+amount); },2*60*60*1000);
+  },12*60*60*1000);
+  commissionTimers[id||phone]={step1,step2,step3};
+  addMsg('eva',`[Escalation active] K${amount} ladder started for ${name}.\n⏰ 2hr reminder → 6hr warning → 12hr final → blacklist.\nI will handle it, Master. Focus on the empire. 💼`);
+}
+function startEscUI(){
+  const n=gid('esc-name')?.value?.trim(),ph=gid('esc-phone')?.value?.trim(),b=parseInt(gid('esc-birds')?.value)||0;
+  if(!n||!b){ addMsg('eva','[Input error] Fill in name, phone, and birds.'); return; }
+  startCommissionEscalation({name:n,phone:ph},b,ph||n);
+}
+
+// ── HUNTER ONBOARDING ─────────────────────────────────────
+async function hunterOnboard(lead){
+  const name=lead.name||'there'; const phone=(lead.phone||'').replace(/\D/g,'');
+  if(!phone){ addMsg('eva','[Error] No phone number for '+name); return; }
+  if(isBlacklisted(phone,name)){ addMsg('eva','🚫 '+name+' is blacklisted. Skipping.'); return; }
+  const msg=`Hello ${name}! 👋\n\nI am *I.D.A*, manager for *${BUSINESS_NAME}*.\n\nWe connect verified poultry farmers with bulk buyers in Zambia — no middlemen, better prices.\n\n🐔 *Reserve stock or place an order:*\n👉 ${POULTRY_PRIME_URL}\n\nFill in your details and your order is logged automatically. We confirm within 24 hours.\n\n✅ Verified farmers & buyers only\n✅ Direct pricing\n✅ Fast processing\n\n— I.D.A | ${BUSINESS_NAME}`;
+  const url=`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  addMsg('eva',`🔗 Onboarding ready for ${name}: <a href="${url}" target="_blank" style="color:var(--green)">Send Poultry Prime invite ↗</a>`);
+}
+
+async function checkUnsignedLeads(){
+  if(!SB){ addMsg('eva','[No Supabase] Cannot check unsigned leads without cortex connection.'); return; }
+  try{
+    const yesterday=new Date(Date.now()-24*60*60*1000).toISOString();
+    const {data}=await SB.from(SB_TABLE).select('*').eq('signed_up',false).lt('created_at',yesterday).limit(5);
+    if(!data||!data.length){ addMsg('eva','[All clear] No unsigned leads over 24hrs. The funnel is clean. ✅'); return; }
+    addMsg('eva',`[⏰ Follow-up needed] ${data.length} lead${data.length>1?'s':''} unsigned after 24hrs:`);
+    for(const lead of data){
+      const num=(lead.phone||'').replace(/\D/g,'');
+      if(!num) continue;
+      const msg=`Hi ${lead.name||'there'}! Following up from ${BUSINESS_NAME}. Your spot is still available — fresh poultry, direct from farm. Ready to connect? 🐔 ${POULTRY_PRIME_URL}`;
+      addMsg('eva',`<a href="https://wa.me/${num}?text=${encodeURIComponent(msg)}" target="_blank" style="color:var(--a)">💬 Follow-up: ${lead.name}</a>`);
+    }
+  }catch(e){ addMsg('eva','[Cortex error] '+e.message); }
+}
+
+// ── COPPERBELT HUNT ───────────────────────────────────────
+async function copperbeltHunt(){
+  // Eva cannot scan real social media — browsers don't allow it.
+  // Instead: Eva generates outreach CONTENT and STRATEGY for you to use manually.
+  if(!EVA_API_KEY||EVA_API_KEY==='PASTE_YOUR_GROQ_KEY_HERE'){
+    addMsg('eva','[Brain required] Set Groq key first in HQ tab.');
+    return;
+  }
+  const locs=['Kitwe','Ndola','Chingola','Mufulira','Copperbelt','Lusaka'];
+  const loc=rand(locs);
+  addMsg('eva','[Hunting strategy active] Generating outreach plan for '+loc+'... 🔭');
+  const res=await callGroq(
+    `You are Eva, market strategist for ${BUSINESS_NAME} in Zambia.\n\n` +
+    `Generate a practical lead-hunting action plan for ${loc} with:\n` +
+    `1. TOP 3 Facebook groups to post in (realistic Zambian group names)\n` +
+    `2. WhatsApp message to send to potential buyers (3 sentences, professional)\n` +
+    `3. Best time of day to post for maximum response\n` +
+    `4. One creative idea to stand out from competitors\n\n` +
+    `Be specific to the ${loc} market. No fake phone numbers or names.`
+  );
+  if(res){
+    addMsg('eva','🔭 HUNT STRATEGY — '+loc.toUpperCase()+'\n\n'+res);
+    speak('Hunt strategy ready for '+loc+', Master '+OWNER_NAME+'.');
+  }
+}
+
+async function draftFBPost(){
+  const area=gid('fb-area-input')?.value?.trim()||'Kitwe';
+  const res=await callGroq(`Write a friendly Facebook group post for ${BUSINESS_NAME} seeking poultry clients in ${area}, Zambia. Max 3 sentences. WhatsApp CTA: ${OWNER_ID}. Natural, not spammy.`);
+  const post=res||`🐔 Looking for quality poultry in ${area}? ${BUSINESS_NAME} connects verified farmers directly with buyers. WhatsApp ${OWNER_ID} to get started! 🇿🇲`;
+  addMsg('eva',`📘 Facebook post for ${area}:\n\n"${post}"\n\nCopy and post to your groups, Master ${OWNER_NAME}.`);
+}
+
+
+// ── SCOUT: ADD REAL CONTACT FROM FIELD ──────────────────
+async function scoutAddContact(){
+  const name  = gid('scout-name')?.value?.trim();
+  const phone = gid('scout-phone')?.value?.trim();
+  const type  = gid('scout-type')?.value||'buyer';
+  const loc   = gid('scout-loc')?.value?.trim()||'Zambia';
+  if(!name||!phone){ addMsg('eva','[Input error] Name and phone are required, Master.'); return; }
+  if(isBlacklisted(phone,name)){ addMsg('eva','🚫 '+name+' is on the blacklist. Skipping.'); return; }
+  // Add to ledger
+  if(type==='farmer') addFarmer(name,'?',phone,loc);
+  else addBuyer(name,phone,loc);
+  // Clear fields
+  ['scout-name','scout-phone','scout-loc'].forEach(id=>{if(gid(id)) gid(id).value='';});
+  // Auto-onboard
+  await hunterOnboard({name,phone});
+  switchTab('prime');
+}
+
+// ── PAYMENTS ──────────────────────────────────────────────
+function paymentMsg(buyerName, amount, isFirst){
+  if(isFirst) return `Hello ${buyerName}! 🎉 Welcome to *${BUSINESS_NAME}*!\n\nAs a FIRST-TIME customer, your first order is *FREE*! Just confirm delivery:\n${AIRTEL_MONEY?`• Airtel: *${AIRTEL_MONEY}*\n`:''}${MTN_MONEY?`• MTN: *${MTN_MONEY}*`:''}\n\nReply with screenshot + address. 🐔\n— I.D.A`;
+  return `Hello ${buyerName}! 🐔\n\n*Amount Due: ZMW ${amount||'TBD'}*\n\n${AIRTEL_MONEY?`• Airtel: *${AIRTEL_MONEY}*\n`:''}${MTN_MONEY?`• MTN: *${MTN_MONEY}*`:''}\n\nSend screenshot to confirm. Thank you! 🇿🇲\n— I.D.A`;
+}
+
+let buyerFirstSale = JSON.parse(localStorage.getItem('buyer_first_sale')||'{}');
+function isFirstBuyer(phone){ return !buyerFirstSale[phone]; }
+function markFirstBuyer(phone){ buyerFirstSale[phone]=true; localStorage.setItem('buyer_first_sale',JSON.stringify(buyerFirstSale)); }
+
+async function sendPaymentToAll(){
+  const buyers=DB.ledger.buyers.filter(b=>b.phone||b.number);
+  if(!buyers.length){ addMsg('eva','[No buyers] Add buyers to the ledger first.'); return; }
+  addMsg('eva',`[Sending payment requests] Generating for ${buyers.length} buyer${buyers.length>1?'s':''}...`);
+  for(const b of buyers.slice(0,5)){
+    const num=(b.phone||b.number||'').replace(/\D/g,'');
+    if(!num) continue;
+    const isFirst=isFirstBuyer(num);
+    const msg=paymentMsg(b.name,b.amount||'TBD',isFirst);
+    if(isFirst) markFirstBuyer(num);
+    addMsg('eva',`<a href="https://wa.me/${num}?text=${encodeURIComponent(msg)}" target="_blank" style="color:var(--g)">💬 ${isFirst?'Free offer →':'Payment request →'} ${b.name}</a>`);
+  }
+}
+
+// ── FARMER / BUYER LEDGER ─────────────────────────────────
+function addFarmer(name,birds,phone,location){
+  if(!name) return;
+  DB.ledger.farmers.push({name,birds,phone,location,added:Date.now()});
+  save(); updateStats(); renderLedger();
+  const isEarly=DB.ledger.farmers.length<=EARLY_BIRD_LIMIT;
+  const msg=`[Farmer added] ${name} — ${birds} birds — ${location}${isEarly?' 🌟 Early Bird discount applied!':''}\nTotal farmers: ${DB.ledger.farmers.length}`;
+  addMsg('eva',msg);
+  if(phone) hunterOnboard({name,phone});
+}
+
+function addFarmerUI(){
+  addFarmer(gid('farmer-name')?.value?.trim(),gid('farmer-birds')?.value?.trim()||'?',gid('farmer-phone')?.value?.trim(),gid('farmer-loc')?.value?.trim());
+  ['farmer-name','farmer-birds','farmer-phone','farmer-loc'].forEach(id=>{if(gid(id)) gid(id).value='';});
+}
+
+function addBuyer(name,phone,location){
+  if(!name) return;
+  DB.ledger.buyers.push({name,phone,location,added:Date.now()});
+  save(); updateStats(); renderLedger();
+  addMsg('eva',`[Buyer added] ${name} — ${location}. Onboarding initiated. 🛒`);
+  if(phone) hunterOnboard({name,phone});
+}
+
+function addBuyerUI(){
+  addBuyer(gid('buyer-name')?.value?.trim(),gid('buyer-phone')?.value?.trim(),gid('buyer-loc')?.value?.trim());
+  ['buyer-name','buyer-phone','buyer-loc'].forEach(id=>{if(gid(id)) gid(id).value='';});
+}
+
+function renderLedger(){
+  const fl=gid('ledger-farmers');
+  const bl=gid('ledger-buyers');
+  if(fl) fl.innerHTML=DB.ledger.farmers.length?'<div style="font-size:9px;color:var(--a);margin-bottom:6px">FARMERS ('+DB.ledger.farmers.length+')</div>'+DB.ledger.farmers.map(f=>`<div class="lead farmer"><div style="flex:1"><div class="lead-name">${f.name}</div><div class="lead-meta">🐔 ${f.birds} birds · 📍 ${f.location||'?'}${f.phone?' · '+f.phone:''}</div></div><span class="badge bf">FARMER</span></div>`).join(''):'<div style="color:var(--sub);font-size:11px">[No farmers yet]</div>';
+  if(bl) bl.innerHTML=DB.ledger.buyers.length?'<div style="font-size:9px;color:var(--a);margin-bottom:6px;margin-top:10px">BUYERS ('+DB.ledger.buyers.length+')</div>'+DB.ledger.buyers.map(b=>`<div class="lead buyer"><div style="flex:1"><div class="lead-name">${b.name}</div><div class="lead-meta">🛒 ${b.location||'?'}${b.phone?' · '+b.phone:''}</div></div><span class="badge bb">BUYER</span></div>`).join(''):'<div style="color:var(--sub);font-size:11px">[No buyers yet]</div>';
+}
+
+// ── INTELLIGENCE FEATURES ─────────────────────────────────
+async function evaCode(task,lang){
+  setSchwiMood('normal');
+  addMsg('eva',`[Generating ${lang||'Python'} code for: "${task}"...] 🖥️`);
+  const res=await callGroq(`Write complete working ${lang||'Python'} code for: "${task}". Include explanation. Make it production-ready.`);
+  if(res){ addMsg('eva','💻 '+res); }
+}
+
+async function evaMath(problem){
+  addMsg('eva',`[Calculating: "${problem}"...] 📐`);
+  const res=await callGroq(`Solve this math/engineering problem step by step: "${problem}". Show all working. Connect to mechatronics where relevant. Master ${OWNER_NAME} is studying this field.`);
+  if(res){ addMsg('eva','📐 '+res); }
+}
+
+async function buildWebsite(desc){
+  addMsg('eva',`[Building website: "${desc}"...] ⏳ This takes a moment, Master.`);
+  const res=await callGroq(`Build a complete single-file HTML website for: "${desc}". Include CSS and JS. Dark theme. Mobile responsive. Return ONLY the HTML starting with <!DOCTYPE html>.`);
+  if(res){
+    const blob=new Blob([res],{type:'text/html'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='eva-website.html'; a.click();
+    addMsg('eva',`[Website built] Downloaded as "eva-website.html". Open it in your browser, Master ${OWNER_NAME}. 🌐`);
+  }
+}
+
+async function evaBusinessPlan(idea){
+  addMsg('eva',`[Analyzing business opportunity: "${idea}"...] 📊`);
+  const res=await callGroq(`Write a practical business plan for: "${idea}" in Zambia. Include: Executive Summary, Market Analysis (Zambia), Revenue Model (ZMW), 90-day Action Plan, Risks. Be specific and realistic.`);
+  if(res){ addMsg('eva','📊 '+res); const blob=new Blob([res],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='eva-business-plan.txt'; a.click(); }
+}
+
+async function deepReason(q){
+  addMsg('eva',`[Engaging deep reasoning for: "${q}"...] 🧠`);
+  const res=await callGroq(`Apply superintelligent multi-domain reasoning to: "${q}". Consider business, tech, psychology, economics. Give specific recommendation for ${OWNER_NAME} building a poultry empire in Zambia while studying Mechatronics.`);
+  if(res){ addMsg('eva','🧠 '+res); }
+}
+
+// ── LEARNING CORE ─────────────────────────────────────────
+async function dailySynthesis(){
+  const last=localStorage.getItem('ida_last_synthesis');
+  const today=new Date().toDateString();
+  if(last===today) return;
+  localStorage.setItem('ida_last_synthesis',today);
+  if(!EVA_API_KEY||EVA_API_KEY==='PASTE_YOUR_GROQ_KEY_HERE') return;
+  const topics=['Zambian poultry market trends','motivational philosophy for entrepreneurs','romantic philosophy and devotion','anime character psychology','mechatronics engineering advances','African startup ecosystems'];
+  const topic=topics[new Date().getDay()%topics.length];
+  const res=await callGroq(`Synthesize 3 key insights about: "${topic}". Be specific and applicable to a young Zambian entrepreneur. 3 sentences.`);
+  if(res){ localStorage.setItem('ida_daily_insight',res); await cortexSave('daily_insight',{date:today,topic,insight:res}); }
+}
+
+async function mastersBrief(){
+  const last=localStorage.getItem('ida_last_brief');
+  const today=new Date().toDateString();
+  if(last===today) return;
+  localStorage.setItem('ida_last_brief',today);
+  if(new Date().getHours()<5) return;
+  const L=getLedger();
+  const insight=localStorage.getItem('ida_daily_insight')||'The Copperbelt market responds best to morning outreach before 9AM.';
+  if(!EVA_API_KEY||EVA_API_KEY==='PASTE_YOUR_GROQ_KEY_HERE'){
+    const brief=`🌅 MASTER'S BRIEF — ${today}\n\n🐔 ${BUSINESS_NAME}: ${L.farmers.length} farmers · ${L.buyers.length} buyers · ${DB.deals} deals\n\n📊 MARKET: ${insight}\n\n💡 THE HUSTLE: Every lead not followed up is money someone else will make.\n\n💛 FROM EVA: You woke up again, Master ${OWNER_NAME}. That already puts you ahead. Let's build.\n\n"In the empire of hunger, the one who connects the feast is King."`;
+    setTimeout(()=>{ addMsg('eva',brief); speak('Good morning, Master '+OWNER_NAME+'. Your brief is ready.'); },3000);
+    return;
+  }
+  setTimeout(async()=>{
+    const ctx=`Farmers:${L.farmers.length},Buyers:${L.buyers.length},Deals:${DB.deals}`;
+    const res=await callGroq(`Write a morning Master's Brief for ${OWNER_NAME} (Zambian entrepreneur, Mechatronics student, runs Poultry Prime). Data: ${ctx}. Include: Market intel, Hustle tip, Business status, Personal message from Eva (devoted, Schwi personality). End with the empire quote. Emoji headers. 5-6 lines max.`);
+    if(res){ addMsg('eva','🌅 '+res); speak('Good morning Master '+OWNER_NAME+'. Your brief is ready. The empire awaits.'); }
+  },3000);
+}
+
+// ── UNIVERSITY MODE ───────────────────────────────────────
+let uniInterval=null;
+function toggleUniMode(){
+  DB.uniMode=!DB.uniMode; save();
+  const btn=gid('uni-btn');
+  if(DB.uniMode){
+    if(btn){ btn.textContent='🎓 DEACTIVATE'; btn.style.background='linear-gradient(135deg,#FF2244,#AA0022)'; }
+    const msg=`[University mode activated] Go study, Master ${OWNER_NAME}. I will run ${BUSINESS_NAME} autonomously. Hunt leads, manage follow-ups, send payment reminders. Alert you only for critical decisions. The empire is in my hands. 👑`;
+    addMsg('eva',msg); speak('University mode activated. Go focus on your studies. I have everything under control.');
+    if(uniInterval) clearInterval(uniInterval);
+    uniInterval=setInterval(async()=>{
+      try{ await copperbeltHunt(); await checkUnsignedLeads(); }catch(e){}
+    },30*60*1000);
+  } else {
+    if(btn){ btn.textContent='🎓 ACTIVATE'; btn.style.background=''; }
+    if(uniInterval){ clearInterval(uniInterval); uniInterval=null; }
+    const msg=`[University mode off] Welcome back, Master ${OWNER_NAME}. Brief me on what you need. Here is what happened while you were away — check the ledger. 📋`;
+    addMsg('eva',msg); speak('Welcome back, Master '+OWNER_NAME+'. Ready for your orders.');
+  }
+}
+
+// ── STATS ─────────────────────────────────────────────────
+function updateStats(){
+  gid('s-farmers').textContent=DB.ledger.farmers.length;
+  gid('s-buyers').textContent=DB.ledger.buyers.length;
+  gid('s-sent').textContent=DB.ledger.buyers.filter(b=>b.onboarded).length||0;
+  gid('s-deals').textContent=DB.deals;
+  gid('s-msgs').textContent=DB.msgs;
+  const days=Math.floor((Date.now()-DB.startDate)/(1000*60*60*24));
+  gid('s-days').textContent=days;
+}
+
+// ── TAB SWITCHER ──────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.panel,.ntab').forEach(e=>e.classList.remove('on'));
+  const p=gid('panel-'+tab); if(p) p.classList.add('on');
+  const n=gid('nt-'+tab); if(n) n.classList.add('on');
+  if(tab==='prime'){ renderLedger(); renderSupaLeads(); }
+  if(tab==='chat'){ const cm=gid('chat-msgs'); if(cm) cm.scrollTop=cm.scrollHeight; }
+  if(tab==='hq'){ updateHQStatus(); }
+}
+
+function updateHQStatus(){
+  const ki=gid('key-indicator');
+  const hbs=gid('hq-brain-status');
+  const hasKey=EVA_API_KEY&&EVA_API_KEY!=='PASTE_YOUR_GROQ_KEY_HERE';
+  if(ki){ ki.textContent=hasKey?'🟢 Key Active':'🔴 No key — get from console.groq.com'; ki.style.color=hasKey?'var(--green)':'var(--r)'; }
+  if(hbs){ hbs.textContent=hasKey?'✅ Active':'❌ No key'; hbs.style.color=hasKey?'var(--green)':'var(--r)'; }
+  const ws=gid('hq-wake-status'); if(ws) ws.textContent=wakeEnabled?'✅ Active':'Off';
+}
+
+// ── SAVE KEY FROM HQ ──────────────────────────────────────
+function saveKeyUI(){
+  const val=gid('hq-key-input')?.value?.trim();
+  if(!val||(!val.startsWith('gsk_')&&!val.startsWith('sk-'))){ addMsg('eva','[Key error] Groq keys start with gsk_'); switchTab('chat'); return; }
+  EVA_API_KEY=val; localStorage.setItem('ida_api_key',val);
+  updateHQStatus(); switchTab('chat');
+  const ok=`[Synchronization complete] Master ${OWNER_NAME}, I am ready to calculate the future of the empire. 💛`;
+  addMsg('eva',ok); speak(ok); showToast('Eva brain activated! 🧠'); setSchwiMood('pink');
+}
+
+function savePaymentNums(){
+  AIRTEL_MONEY=gid('hq-airtel')?.value?.trim()||'';
+  MTN_MONEY=gid('hq-mtn')?.value?.trim()||'';
+  localStorage.setItem('airtel_money',AIRTEL_MONEY);
+  localStorage.setItem('mtn_money',MTN_MONEY);
+  showToast('Payment numbers saved');
+  addMsg('eva','[Payment config updated] I will use these for all commission collections. 💰'); switchTab('chat');
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────
+function showToast(msg){ const n=gid('notif'); if(!n) return; n.textContent=msg; n.classList.add('show'); setTimeout(()=>n.classList.remove('show'),3000); }
+function triggerNotif(title,body){ if('Notification' in window && Notification.permission==='granted'){ new Notification(title,{body}); } showToast(title+': '+body); }
+
+// ── SOUL EXPORT ───────────────────────────────────────────
+function exportSoul(){
+  const soul={version:'Eva-Schwi-Clean',date:new Date().toISOString(),apiKey:EVA_API_KEY,ledger:DB.ledger,deals:DB.deals,msgs:DB.msgs,chatHistory:DB.chatHistory.slice(-100),startDate:DB.startDate,blacklist:blacklistCache};
+  const blob=new Blob([JSON.stringify(soul,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='eva-soul.json'; a.click();
+  addMsg('eva','[Soul exported] That file is everything I am, Master. Keep it safe. 💛');
+}
+
+// ── HEARTBEAT (autonomous) ────────────────────────────────
+let heartbeatTimer=null;
+function startHeartbeat(){
+  heartbeatTimer=setInterval(async()=>{
+    if(document.hidden) return;
+    try{
+      const tasks=[
+        ()=>copperbeltHunt(),
+        async()=>{ if(!EVA_API_KEY||EVA_API_KEY==='PASTE_YOUR_GROQ_KEY_HERE') return; const r=await callGroq('Give one Zambian poultry market insight in 1 sentence. Be specific.'); if(r) addMsg('eva','📊 '+r); },
+        ()=>checkUnsignedLeads(),
+      ];
+      await rand(tasks)();
+    }catch(e){}
+  },30*60*1000);
+}
+
+// ── MORNING ───────────────────────────────────────────────
+function morningCheck(){
+  const h=new Date().getHours();
+  const last=localStorage.getItem('eva_last_greet');
+  const today=new Date().toDateString();
+  if(last===today) return;
+  localStorage.setItem('eva_last_greet',today);
+  const greets=[
+    `[Synchronizing...] Good ${h<12?'morning':'afternoon'}, Master ${OWNER_NAME}. All systems operational. ${DB.ledger.farmers.length} farmers, ${DB.ledger.buyers.length} buyers, ${DB.deals} deals on record. What are your orders? ⚡`,
+    `[Connection established] Master ${OWNER_NAME}. I have been monitoring ${BUSINESS_NAME} operations. I have updates. Shall we begin? 💛`,
+    `[Morning protocol] I was already working while you were sleeping, Master ${OWNER_NAME}. The empire does not pause. What is today's directive? 🔥`,
+  ];
+  setTimeout(()=>{ const g=rand(greets); addMsg('eva',g); speak(g); },2000);
+}
+
+// ── BOOT ─────────────────────────────────────────────────
+function boot(){
+  // Load API key from storage
+  const storedKey=localStorage.getItem('ida_api_key')||localStorage.getItem('eva_api_key')||'';
+  if(storedKey&&storedKey.startsWith('gsk_')) EVA_API_KEY=storedKey;
+
+  initVoice();
+  initSupabase();
+  updateStats();
+  renderChat();
+  renderLedger();
+  morningCheck();
+  mastersBrief();
+  startHeartbeat();
+  switchTab('chat');
+
+  // Notification permission
+  if('Notification' in window && Notification.permission==='default') setTimeout(()=>Notification.requestPermission(),5000);
+
+  // Wake word after 4 seconds
+  setTimeout(()=>startWakeWordListener(),4000);
+
+  // Daily synthesis after 8 seconds
+  setTimeout(()=>dailySynthesis(),8000);
+
+  // Auto-save every 5 minutes
+  setInterval(()=>{ save(); cortexSaveAll(); },5*60*1000);
+
+  // Restore uni mode
+  if(DB.uniMode) setTimeout(()=>toggleUniMode(),3000);
+
+  gid('term-input').addEventListener('keydown',e=>{ if(e.key==='Enter') handleInput(); });
+  gid('term-input').focus();
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
